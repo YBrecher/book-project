@@ -23,6 +23,8 @@ import com.karankumar.bookproject.ui.MainView;
 import com.karankumar.bookproject.ui.book.BookForm;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.dialog.Dialog;
+import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -39,6 +41,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
@@ -59,7 +62,6 @@ public class BooksInShelfView extends VerticalLayout {
     public static final String RATING_KEY = "rating";
     public static final String DATE_STARTED_KEY = "dateStartedReading";
     public static final String DATE_FINISHED_KEY = "dateFinishedReading";
-
     public final Grid<Book> bookGrid;
     public final ComboBox<PredefinedShelf.ShelfName> whichShelf;
 
@@ -67,9 +69,9 @@ public class BooksInShelfView extends VerticalLayout {
     private final BookService bookService;
     private final PredefinedShelfService shelfService;
     private final TextField filterByTitle;
-
     private PredefinedShelf.ShelfName chosenShelf;
     private String bookTitle; // the book to filter by (if specified)
+    private Dialog bookDialog = new Dialog();
 
     public BooksInShelfView(BookService bookService, PredefinedShelfService shelfService) {
         this.bookService = bookService;
@@ -92,6 +94,28 @@ public class BooksInShelfView extends VerticalLayout {
 
         configureBookGrid();
         add(horizontalLayout, bookGrid);
+
+
+        FormLayout formLayout = new FormLayout();
+        bookDialog.add(formLayout);
+        bookDialog.setCloseOnOutsideClick(true);
+        add(bookDialog);
+
+        Button yesButton = new Button("Yes");
+        Button noButton = new Button("No");
+
+        List<PredefinedShelf> matchingShelves = shelfService.findAll(chosenShelf);
+
+        Set<Book> booksInShelf = matchingShelves.get(0).getBooks();
+
+        yesButton.addClickListener(event -> deleteShelf(booksInShelf));
+
+        formLayout.add("Are you sure you want to reset all books in " + chosenShelf + "? This is irreversible.");
+        formLayout.add(new HorizontalLayout(yesButton, noButton));
+
+        Button reset = new Button("Reset Shelf");
+        reset.addClickListener(event -> bookDialog.open());
+        add(reset);
 
         add(bookForm);
 
@@ -290,6 +314,12 @@ public class BooksInShelfView extends VerticalLayout {
             LOGGER.log(Level.INFO, "Book is not null");
             bookService.save(event.getBook());
             updateGrid();
+        }
+    }
+
+    private void deleteShelf(Set<Book> booksInShelf){
+        for(Book book : booksInShelf){
+            bookService.delete(book);
         }
     }
 }
