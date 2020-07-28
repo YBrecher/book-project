@@ -62,6 +62,7 @@ public class BooksInShelfView extends VerticalLayout {
     public static final String RATING_KEY = "rating";
     public static final String DATE_STARTED_KEY = "dateStartedReading";
     public static final String DATE_FINISHED_KEY = "dateFinishedReading";
+
     public final Grid<Book> bookGrid;
     public final ComboBox<PredefinedShelf.ShelfName> whichShelf;
 
@@ -69,6 +70,7 @@ public class BooksInShelfView extends VerticalLayout {
     private final BookService bookService;
     private final PredefinedShelfService shelfService;
     private final TextField filterByTitle;
+
     private PredefinedShelf.ShelfName chosenShelf;
     private String bookTitle; // the book to filter by (if specified)
     private Dialog bookDialog = new Dialog();
@@ -104,11 +106,9 @@ public class BooksInShelfView extends VerticalLayout {
         Button yesButton = new Button("Yes");
         Button noButton = new Button("No");
 
-        List<PredefinedShelf> matchingShelves = shelfService.findAll(chosenShelf);
+        yesButton.addClickListener(event ->
 
-        Set<Book> booksInShelf = matchingShelves.get(0).getBooks();
-
-        yesButton.addClickListener(event -> deleteShelf(booksInShelf));
+        deleteShelf(getShelf()));
 
         formLayout.add("Are you sure you want to reset all books in " + chosenShelf + "? This is irreversible.");
         formLayout.add(new HorizontalLayout(yesButton, noButton));
@@ -321,5 +321,12 @@ public class BooksInShelfView extends VerticalLayout {
         for(Book book : booksInShelf){
             bookService.delete(book);
         }
+    }
+
+    private Set<Book> getShelf(){
+        List<PredefinedShelf> matchingShelves = shelfService.findAll(chosenShelf);
+
+        Set<Book> booksInShelf = matchingShelves.get(0).getBooks();
+        return booksInShelf;
     }
 }
