@@ -9,6 +9,7 @@ import com.karankumar.bookproject.backend.entity.ReadingGoal;
 import com.karankumar.bookproject.backend.service.BookService;
 import com.karankumar.bookproject.backend.service.ReadingGoalService;
 import com.karankumar.bookproject.backend.service.PredefinedShelfService;
+import com.karankumar.bookproject.tags.IntegrationTest;
 import com.karankumar.bookproject.ui.MockSpringServlet;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.spring.SpringServlet;
@@ -30,8 +31,7 @@ import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
-@ExtendWith(SpringExtension.class)
-@SpringBootTest
+@IntegrationTest
 @WebAppConfiguration
 public class ReadingGoalViewTests {
     private static Routes routes;
@@ -233,10 +233,49 @@ public class ReadingGoalViewTests {
         Assertions.assertTrue(goalView.readingGoal.isVisible());
         Assertions.assertTrue(goalView.progressPercentage.isVisible());
 
+        PredefinedShelf readShelf = findShelf(PredefinedShelf.ShelfName.READ);
+        int howManyReadThisYear = ReadingGoalView.howManyReadThisYear(ReadingGoal.GoalType.BOOKS, readShelf);
+        int targetToRead = booksGoal.getTarget();
+        boolean hasReachedGoal = (targetToRead <= howManyReadThisYear);
+
         if (booksGoal.getGoalType().equals(ReadingGoal.GoalType.BOOKS)) {
             // Additional components that should be visible for a books goal
             Assertions.assertTrue(goalView.goalProgress.isVisible());
-            Assertions.assertTrue(goalView.booksToRead.isVisible());
+            if(hasReachedGoal) {
+                Assertions.assertFalse(goalView.booksToRead.isVisible());
+            } else {
+                Assertions.assertTrue(goalView.booksToRead.isVisible());
+            }
+        }
+    }
+
+    /**
+     * Checks whether the right information is shown when a goal is set/updated.
+     */
+    @Test
+    public void correctInformationShownWhenGoalIsUpdated() {
+        Assumptions.assumeTrue(goalService.findAll().size() == 0);
+
+        ReadingGoal readingGoal = new ReadingGoal(getRandomGoalTarget(), getRandomGoalType());
+        goalService.save(readingGoal);
+        goalView.getCurrentGoal();
+        // should be visible for both a book or pages goal
+        Assertions.assertTrue(goalView.readingGoal.isVisible());
+        Assertions.assertTrue(goalView.progressPercentage.isVisible());
+
+        PredefinedShelf readShelf = findShelf(PredefinedShelf.ShelfName.READ);
+        int howManyReadThisYear = ReadingGoalView.howManyReadThisYear(readingGoal.getGoalType(), readShelf);
+        int targetToRead = readingGoal.getTarget();
+        boolean hasReachedGoal = (targetToRead <= howManyReadThisYear);
+
+        if (readingGoal.getGoalType().equals(ReadingGoal.GoalType.BOOKS)) {
+            // Additional components that should be visible for a books goal
+            Assertions.assertTrue(goalView.goalProgress.isVisible());
+            if(hasReachedGoal) {
+                Assertions.assertFalse(goalView.booksToRead.isVisible());
+            } else {
+                Assertions.assertTrue(goalView.booksToRead.isVisible());
+            }
         }
     }
 
